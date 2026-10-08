@@ -1,0 +1,121 @@
+import { ReactNode, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { LayoutDashboard, Package, ScanLine, BarChart3, LogOut, ShieldCheck, ScanBarcode, Menu, FileText, FileSpreadsheet, KeyRound, Settings as SettingsIcon, Boxes, History } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useBusinessName } from "@/hooks/useBusinessName";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
+
+const navItems = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "staff"] as const },
+  { to: "/pos", label: "Point of Sale", icon: ScanLine, roles: ["admin", "staff"] as const },
+  { to: "/inventory", label: "Inventory", icon: Package, roles: ["admin"] as const },
+  { to: "/products", label: "Products", icon: Boxes, roles: ["staff"] as const },
+  { to: "/invoices", label: "Invoices", icon: FileText, roles: ["admin", "staff"] as const },
+  { to: "/quotations", label: "Quotations", icon: FileSpreadsheet, roles: ["admin", "staff"] as const },
+  { to: "/sales-history", label: "Sales History", icon: History, roles: ["admin", "staff"] as const },
+  { to: "/reports", label: "Reports", icon: BarChart3, roles: ["admin"] as const },
+  { to: "/licenses", label: "Licenses", icon: KeyRound, roles: ["admin"] as const },
+  { to: "/settings", label: "Settings", icon: SettingsIcon, roles: ["admin", "staff"] as const },
+];
+
+export const AppLayout = ({ children }: { children: ReactNode }) => {
+  const { user, role, signOut } = useAuth();
+  const { name: bizName, tagline: bizTagline } = useBusinessName();
+  const navigate = useNavigate();
+  const [openMobile, setOpenMobile] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
+    <div className="flex flex-col h-full bg-sidebar">
+      <div className="h-16 flex items-center gap-2 px-6 border-b border-sidebar-border">
+        <div className="h-9 w-9 rounded-lg bg-gradient-primary flex items-center justify-center">
+          <ScanBarcode className="h-5 w-5 text-primary-foreground" />
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold tracking-tight truncate">{bizName}</p>
+          <p className="text-xs text-muted-foreground truncate">{bizTagline}</p>
+        </div>
+      </div>
+      <nav className="flex-1 p-3 space-y-1 overflow-auto">
+        {navItems.filter(n => role && (n.roles as readonly string[]).includes(role)).map(item => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            onClick={onNavigate}
+            className={({ isActive }) => cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              isActive
+                ? "bg-primary text-primary-foreground shadow-card"
+                : "text-sidebar-foreground hover:bg-sidebar-accent"
+            )}
+          >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+      <div className="p-3 border-t border-sidebar-border space-y-2">
+        <div className="flex items-center gap-2 px-3 py-2 text-xs">
+          <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="truncate font-medium">{(user?.user_metadata as any)?.client_name || "Activated device"}</p>
+            <p className="text-muted-foreground capitalize">{role}</p>
+          </div>
+        </div>
+        <PWAInstallButton className="w-full justify-start text-xs h-9" />
+        <ThemeToggle />
+        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={handleSignOut}>
+          <LogOut className="h-4 w-4 mr-2" /> Sign out
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen flex w-full bg-gradient-subtle">
+      <OfflineIndicator />
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-64 shrink-0 border-r border-border flex-col">
+        <SidebarContent />
+      </aside>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile top bar */}
+        <header className="md:hidden h-14 flex items-center justify-between px-4 border-b border-border bg-background/80 backdrop-blur sticky top-0 z-30">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
+              <ScanBarcode className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <p className="font-semibold tracking-tight truncate max-w-[140px]">{bizName}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <PWAInstallButton size="sm" variant="ghost" className="h-8 px-2 text-xs" />
+            <Sheet open={openMobile} onOpenChange={setOpenMobile}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Open menu">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72">
+                <SidebarContent onNavigate={() => setOpenMobile(false)} />
+              </SheetContent>
+            </Sheet>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-auto">
+          <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full">{children}</div>
+        </main>
+      </div>
+    </div>
+  );
+};

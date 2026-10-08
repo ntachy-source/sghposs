@@ -1,0 +1,10 @@
+{
+  "name": "DigiTech POS — Gadget Inventory & POS",
+  "description": "Fast QR-based inventory and Point of Sale system for gadget stores. Scan IMEI/serial to sell, track stock, and generate invoices.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
